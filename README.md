@@ -8,7 +8,7 @@
 
 本项目仅通过HTML， CSS， JS以及Echarts可视化组件实现。
  
-This project is implemented only through HTML, CSS, JS and Echarts visualization components.
+This project is implemented only through HTML, CSS, JS and Echarts visualization components：https://echarts.apache.org/.
 
 
 
