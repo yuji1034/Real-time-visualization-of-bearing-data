@@ -3,7 +3,7 @@
 
 ![516b2d1c6e6c8b13fa8bf1f00fcdd89](https://github.com/user-attachments/assets/eb71ecde-df11-41d7-9e40-374c7125ce88)
 ![image](https://github.com/user-attachments/assets/54e58e77-3189-4939-a53d-07676380e9d5)
-
+(maybe something wrong with this graph...never mind, a pre version
 ![image](https://github.com/user-attachments/assets/8888e72f-7a7e-4d2d-8ddb-0602c7e50f1e)
 
 本项目仅通过HTML， CSS， JS以及Echarts可视化组件实现。
