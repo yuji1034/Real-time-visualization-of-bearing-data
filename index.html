@@ -1,0 +1,651 @@
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>轴承实时检测系统</title>
+        <link rel="stylesheet" href="./index.css">
+        <script src="./echarts/echarts.min.js"></script>
+        <script src="./jquery/jquery-3.3.1.min.js"></script>
+    </head>
+    <body>
+        <div id="head">
+            <div id="title">轴承实时检测系统</div>
+            <button id="refreshPage" onclick="refreshPage()">刷新</button>
+            <div class="light">
+                <button id="speedInputButton" value>输入转频</button>
+                <input type="number" id="inputRpm">
+                <span id="speed">转频:</span>
+                <span id="tmp">温度:</span>
+                <span id="result1" title="内圈故障"></span>
+                <span id="result2" title="外圈故障"></span>
+                <span id="result3" title="滚动体故障"></span>
+                <span id="result4" title="保持架故障"></span>
+                <button id="openButton">故障确认</button>
+                <button id="statButton"><a href="./stat.html"
+                        target="_blank">统计</a></button>
+            </div>
+        </div>
+
+        <div id="submit" class="popup">
+            <div class="popup-content">
+                <span class="close" id="closeButton">关闭</span>
+                <div id="inputText"><p>编号:</p><input type="text" id="inputData"
+                        value></div>
+
+                <div id="report">
+                    <div id="resultReport"><p>类型:</p></div>
+                    <div class="checkBox"><label><input type="checkbox"
+                                id="checkBox1">内圈</label></div>
+                    <div class="checkBox"><label><input type="checkbox"
+                                id="checkBox2">外圈</label></div>
+                    <div class="checkBox"><label><input type="checkbox"
+                                id="checkBox3">滚动体</label></div>
+                    <div class="checkBox"><label><input type="checkbox"
+                                id="checkBox4">保持架</label></div>
+                </div>
+                <button onclick="sendData()" class="confirm"
+                    id="confirmButton">确认</button>
+            </div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div id="display">
+            <div id="chart1" class="charts clickableDiv"></div>
+            <div id="chart2" class="charts"></div>
+            <div id="chart3" class="charts"></div>
+            <div id="chart4" class="charts"></div>
+            <div id="chart5" class="charts"></div>
+            <div id="chart6" class="charts"></div>
+        </div>
+
+        <script>
+        // 弹窗
+        var openButton = document.getElementById("openButton");     //打开弹窗
+        var popup = document.getElementById("submit");              
+        var closeButton = document.getElementById("closeButton");   //关闭弹窗
+
+        // 点击按钮时显示弹出窗口
+        openButton.addEventListener("click", function() {
+            popup.style.display = "block";
+        });
+
+        // 点击关闭按钮时隐藏弹出窗口
+        closeButton.addEventListener("click", function() {
+            popup.style.display = "none";
+        });
+
+        //刷新按钮
+        function refreshPage() {
+            location.reload();
+        }
+        
+        //初始化图表
+        var charts = [];   
+        var chart1 = echarts.init(document.getElementById('chart1'), null,{});
+        charts.push(chart1);
+
+        var chart2 = echarts.init(document.getElementById('chart2'), null,{});
+        charts.push(chart2);
+
+        var chart3 = echarts.init(document.getElementById('chart3'), null,{});
+        charts.push(chart3);
+
+        var chart4 = echarts.init(document.getElementById('chart4'), null,{});
+        charts.push(chart4);
+
+        var chart5 = echarts.init(document.getElementById('chart5'), null,{});
+        charts.push(chart5);
+
+        var chart6 = echarts.init(document.getElementById('chart6'), null,{});
+        charts.push(chart6);
+    
+        //数据数组
+        var timeData = [];
+        var ACaverageXArray = [];
+        var ACaverageYArray = [];
+        var ACaverageZArray = [];
+
+        var ACmaxXArray = [];
+        var ACmaxYArray = [];
+        var ACmaxZArray = [];
+
+        var ACdegreeXArray = [];
+        var ACdegreeYArray = [];
+        var ACdegreeZArray = [];
+
+        var SPaverageXArray = [];
+        var SPaverageYArray = [];
+        var SPaverageZArray = [];
+
+        var SPmaxXArray = [];
+        var SPmaxYArray = [];
+        var SPmaxZArray = [];
+
+        var SPdegreeXArray = [];
+        var SPdegreeYArray = [];
+        var SPdegreeZArray = [];
+
+        //图表初始化，这里暴力地做了六个图，优化空间还是巨大的
+        charts[0].setOption({
+            title: {
+                text: '加速度平均值',   
+            },
+            legend: {
+                data: ['X轴','Y轴','Z轴']
+            },
+            xAxis: {
+                name:'time',
+                type: 'category',
+                data: timeData
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [ 
+                    {
+                        name:'X轴',
+                        type:'line',
+                        showSymbol: false,
+                        animation: false,//animation禁用的原因：通过数组动态更新的方式会不断重绘，折线会一直跳（可以试试启用的效果便知
+                    },
+                    {
+                        name: 'Y轴',
+                        type: 'line',
+                        showSymbol: false,
+                        animation: false,
+                    },
+                    {
+                        name: 'Z轴',
+                        type: 'line',
+                        showSymbol: false,
+                        animation: false,
+                    }
+                    ]
+        });
+
+        charts[1].setOption({
+            title: {
+                text: '加速度最大值', 
+            },
+            legend: {
+        
+                data: ['X轴最大值','Y轴最大值','Z轴最大值']
+            },
+            xAxis: {
+                name:'time',
+                type: 'category',
+                data: timeData
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [ 
+                    {
+                        name:'X轴最大值',
+                        type:'line',
+                        showSymbol: false,
+                        animation: false,
+                    },
+                    {
+                        name: 'Y轴最大值',
+                        type: 'line',
+                        showSymbol: false,
+                        animation: false,
+                    },
+                    {
+                        name: 'Z轴最大值',
+                        type: 'line',
+                        showSymbol: false,
+                        animation: false,
+                    }
+                    ]
+        });
+
+        charts[2].setOption({
+            title: {
+                text: '加速度峭度', 
+            },
+            legend: {
+                data: ['X轴峭度','Y轴峭度','Z轴峭度']
+            },
+            xAxis: {
+                name:'time',
+                type: 'category',
+                data: timeData
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [ 
+                    {
+                        name:'X轴峭度',
+                        type:'line',
+                        showSymbol: false,
+                        animation: false
+                    },
+                    {
+                        name: 'Y轴峭度',
+                        type: 'line',
+                        showSymbol: false,
+                        animation: false
+                    },
+                    {
+                        name: 'Z轴峭度',
+                        type: 'line',
+                        showSymbol: false,
+                        animation: false
+                    }
+                    ]
+        });
+
+        charts[3].setOption({
+            title: {
+                text: '速度平均值', 
+            },
+            legend: {
+                data: ['X轴','Y轴','Z轴']
+            },
+            xAxis: {
+                name:'time',
+                type: 'category',
+                data: timeData
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [ 
+                    {
+                        name:'X轴',
+                        type:'line',
+                        showSymbol: false,
+                        animation: false
+                    },
+                    {
+                        name: 'Y轴',
+                        type: 'line',
+                        showSymbol: false,
+                        animation: false
+                    },
+                    {
+                        name: 'Z轴',
+                        type: 'line',
+                        showSymbol: false,
+                        animation: false
+                    }
+                    ]
+        });
+
+        charts[4].setOption({
+            title: {
+                text: '速度最大值', 
+            },
+            legend: {
+        
+                data: ['X轴','Y轴','Z轴']
+            },
+            xAxis: {
+                name:'time',
+                type: 'category',
+                data: timeData
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [ 
+                    {
+                        name:'X轴',
+                        type:'line',
+                        showSymbol: false,
+                        animation: false
+                    },
+                    {
+                        name: 'Y轴',
+                        type: 'line',
+                        showSymbol: false,
+                        animation: false
+                    },
+                    {
+                        name: 'Z轴',
+                        type: 'line',
+                        showSymbol: false,
+                        animation: false
+                    }
+                    ]
+        });
+
+        charts[5].setOption({
+            title: {
+                text: '速度峭度', 
+            },
+            legend: {
+                data: ['X轴','Y轴','Z轴']
+            },
+            xAxis: {
+                name:'time',
+                type: 'category',
+                data: timeData
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [ 
+                    {
+                        name:'X轴',
+                        type:'line',
+                        showSymbol: false,
+                        animation: false
+                    },
+                    {
+                        name: 'Y轴',
+                        type: 'line',
+                        showSymbol: false,
+                        animation: false
+                    },
+                    {
+                        name: 'Z轴',
+                        type: 'line',
+                        showSymbol: false,
+                        animation: false
+                    }
+                    ]
+        });
+
+        var ws = new WebSocket('ws://your_address');//线性传输数据用websocket
+        ws.onopen = function(event) {
+            console.log("WebSocket已连接!");
+        };
+
+        //转频下放，这个功能其实还没什么用
+        var inputRpm = document.getElementById('inputRpm'); 
+        var speedInputButton = document.getElementById('speedInputButton');
+        speedInputButton.addEventListener('click',function(){
+                ws.send(inputRpm.value);
+                inputRpm.value = "";
+                console.log("转频发送成功！");
+        });
+
+        ws.onmessage = function(event) {
+            const jsonData = JSON.parse(event.data);
+            var now = new Date();
+            //时间作为坐标轴
+            var seconds = now.getSeconds() + now.getMilliseconds() / 1000;
+            var time = now.getMinutes();
+
+            //温度  以下的xyz其实是对应三条折线，均为“y”轴
+            var tmp = jsonData.temperature /100;
+            var tmpDisplay = document.getElementById('tmp');
+            tmpDisplay.innerHTML = '温度：'+ tmp +"°";
+
+            //转频
+            var preSpeed = jsonData.rpm;
+            var speedDisplay = document.getElementById('speed');
+            speed.innerHTML = '转频：'+ preSpeed;
+            // console.log("转速："+preSpeed);
+
+            var result = jsonData.result;
+            // console.log(result);
+
+            //故障灯
+            var light1 = document.getElementById('result1');
+            var light2 = document.getElementById('result2');
+            var light3 = document.getElementById('result3');
+            var light4 = document.getElementById('result4');
+
+            //平均值
+            var ACaverX = jsonData.acceleration.x.average / 100;    //除以100的原因是因为后端懒得处理数据直接丢给我了，不必理会
+            var ACaverY = jsonData.acceleration.y.average / 100;
+            var ACaverZ = jsonData.acceleration.z.average / 100;
+
+            //最大值
+            var ACmaxX = jsonData.acceleration.x.max / 100;
+            var ACmaxY = jsonData.acceleration.y.max / 100;
+            var ACmaxZ = jsonData.acceleration.z.max / 100;
+
+            //峭度
+            var ACdegreeX = jsonData.acceleration.x.degree / 100;
+            var ACdegreeY = jsonData.acceleration.y.degree / 100;
+            var ACdegreeZ = jsonData.acceleration.z.degree / 100;
+
+             //平均值
+            var SPaverX = jsonData.speed.x.average / 100;
+            var SPaverY = jsonData.speed.y.average / 100;
+            var SPaverZ = jsonData.speed.z.average / 100;
+
+            //最大值
+            var SPmaxX = jsonData.speed.x.max / 100;
+            var SPmaxY = jsonData.speed.y.max / 100;
+            var SPmaxZ = jsonData.speed.z.max / 100;
+
+            //峭度
+            var SPdegreeX = jsonData.speed.x.degree / 100;
+            var SPdegreeY = jsonData.speed.y.degree / 100;
+            var SPdegreeZ = jsonData.speed.z.degree / 100;
+
+            //push数据，折线图的原理：echarts的线本质上通过是数组数据绘画的，通过队列边进边出的形式便可实现动态显示（当然这里还只是对数组的处理）
+            timeData.push(time);
+            ACaverageXArray.push(ACaverX);
+            ACaverageYArray.push(ACaverY);
+            ACaverageZArray.push(ACaverZ);
+            
+            ACmaxXArray.push(ACmaxX);
+            ACmaxYArray.push(ACmaxY);
+            ACmaxZArray.push(ACmaxZ);
+
+            ACdegreeXArray.push(ACdegreeX);
+            ACdegreeYArray.push(ACdegreeY);
+            ACdegreeZArray.push(ACdegreeZ);
+
+            SPaverageXArray.push(SPaverX);
+            SPaverageYArray.push(SPaverY);
+            SPaverageZArray.push(SPaverZ);
+            
+            SPmaxXArray.push(SPmaxX);
+            SPmaxYArray.push(SPmaxY);
+            SPmaxZArray.push(SPmaxZ);
+
+            SPdegreeXArray.push(SPdegreeX);
+            SPdegreeYArray.push(SPdegreeY);
+            SPdegreeZArray.push(SPdegreeZ);
+
+            //故障灯判断，这里都是优化空间
+            if(result == 0){
+                light1.style.backgroundColor = "red";
+                light2.style.backgroundColor = "grey";
+                light3.style.backgroundColor = "grey";
+                light4.style.backgroundColor = "grey";
+            }
+            if(result == 1){
+                light1.style.backgroundColor = "grey";
+                light2.style.backgroundColor = "red";
+                light3.style.backgroundColor = "grey";
+                light4.style.backgroundColor = "grey";
+            }
+            if(result == 2){
+                light1.style.backgroundColor = "grey";
+                light2.style.backgroundColor = "grey";
+                light3.style.backgroundColor = "red";
+                light4.style.backgroundColor = "grey";
+            }
+            if(result == 3){
+                light1.style.backgroundColor = "grey";
+                light2.style.backgroundColor = "grey";
+                light3.style.backgroundColor = "grey";
+                light4.style.backgroundColor = "red";
+            }
+            
+
+            //限定x轴坐标，弹出不显示的元素。图像其实是二十个短数组拼接成一个长数组，当数组长度大于二十就把前面的短数组删掉，后面接入新数组
+            if (timeData.length > 20) {
+                timeData.shift();
+                ACaverageXArray.shift();
+                ACaverageYArray.shift();
+                ACaverageZArray.shift();
+
+                ACmaxXArray.shift();
+                ACmaxYArray.shift();
+                ACmaxZArray.shift();
+
+                ACdegreeXArray.shift();
+                ACdegreeYArray.shift();
+                ACdegreeZArray.shift();
+
+                SPaverageXArray.shift();
+                SPaverageYArray.shift();
+                SPaverageZArray.shift();
+
+                SPmaxXArray.shift();
+                SPmaxYArray.shift();
+                SPmaxZArray.shift();
+
+                SPdegreeXArray.shift();
+                SPdegreeYArray.shift();
+                SPdegreeZArray.shift();
+            }
+
+            //图表更新数据
+            charts[0].setOption({
+                series: [ 
+                        {
+                            data: ACaverageXArray
+                        },{
+                            data: ACaverageYArray
+                        },{
+                            data: ACaverageZArray
+                        }]
+            });
+
+            charts[1].setOption({
+                series: [ 
+                        {
+                            data: ACmaxXArray
+                        },{
+                            data: ACmaxYArray
+                        },{
+                            data: ACmaxZArray
+                        }]
+            });
+
+            charts[2].setOption({
+                series: [ 
+                        {
+                            data: ACdegreeXArray
+                        },{
+                            data: ACdegreeYArray
+                        },{
+                            data: ACdegreeZArray
+                        }]
+            });
+
+            charts[3].setOption({
+                series: [ 
+                        {
+                            data: SPaverageXArray
+                        },{
+                            data: SPaverageYArray
+                        },{
+                            data: SPaverageZArray
+                        }]
+            });
+
+            charts[4].setOption({
+                series: [ 
+                        {
+                            data: SPmaxXArray
+                        },{
+                            data: SPmaxYArray
+                        },{
+                            data: SPmaxZArray
+                        }]
+            });
+
+            charts[5].setOption({
+                series: [ 
+                        {
+                            data: SPdegreeXArray
+                        },{
+                            data: SPdegreeYArray
+                        },{
+                            data: SPdegreeZArray
+                        }]
+            });
+
+        };
+
+        //故障确认数据返回函数
+        function sendData() {
+            var confirmButton = document.getElementById('confirmButton');
+            var inputData = document.getElementById('inputData').value;
+            
+            var Box1Val = document.getElementById('checkBox1').checked;
+            var Box2Val = document.getElementById('checkBox2').checked;
+            var Box3Val = document.getElementById('checkBox3').checked;
+            var Box4Val = document.getElementById('checkBox4').checked;
+            
+            var finalResult = '';
+            
+            // 判断故障类型
+            if(Box1Val == true){
+                finalResult += '内圈故障;';
+            }
+            if(Box2Val == true){
+                finalResult += '外圈故障;';
+            }
+            if(Box3Val == true){
+                finalResult += '滚动体故障;';
+            }
+            if(Box4Val == true){
+                finalResult += '保持架故障;';
+            }
+            
+            if (inputData.trim() !== '') { // 检查输入框和多选框是否为空
+                var jsonData = {
+                "num": inputData,
+                "result": finalResult
+                };
+            }
+            
+            if (Box1Val || Box2Val || Box3Val || Box4Val) {
+                if (inputData.trim() !== '') { // 检查输入框和多选框是否为空
+                    var jsonData = {
+                    "num": inputData,
+                    "result": finalResult
+                    };
+                    //离散传输数据用AJAX
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', 'http://your_address', true);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.send(JSON.stringify(jsonData));
+
+                    xhr.onload = function () {
+                        if (document.getElementById('inputData').value != '') {
+                            popup.style.display = "none";
+                            document.getElementById('inputData').value = '';
+                        } 
+                        if(document.getElementById('inputData').value == ''){
+                        }
+                    };
+                }
+            }
+        }
+    </script>
+    </body>
+</html>

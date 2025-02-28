@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>历史记录</title>
+        <style>
+        #title{
+            margin-left: 3px;
+            width: 150px;
+            height: 50px;
+            font-size: 30px;
+            line-height: 50px;
+            font-weight: 700;
+        }
+        #head #refreshPage{
+            margin-top: 13px;
+            border-style: none;
+            color: #fff;
+            background-color: #208ad6;
+            width: 60px;
+            height: 30px;
+            border-radius: 3px;
+            font-weight: 700;
+            font-size: 16px;
+        }
+        #head #refreshPage:hover{
+            cursor: pointer;
+            
+        }
+        #head{
+            position: relative;
+            display: flex;
+            height: 50px;
+            background-color: #ffffff;
+            border-bottom: 3px solid #208ad6;
+            color: #515151;
+            line-height: 50px;
+            border-radius: 3px;
+        }
+        table{
+            border-collapse: collapse; 
+            width: 100%; 
+            border: 1px solid #208ad6;
+            color: #208ad6;
+            border-radius: 5px;
+        }
+        th, td{
+            border: 1px solid #208ad6;
+            color: #208ad6;
+            padding: 3px;
+        }
+        #data{
+            margin-top: 5px;
+            box-shadow: 1px 1px 2px 1px rgb(204, 202, 202);
+        }
+    </style>
+    </head>
+    <body onload="getAll()">
+        <div id="head">
+            <div id="title">历史记录</div>
+            <button id="refreshPage" onclick="refreshPage()">刷新</button>
+
+        </div>
+        <div id="data">
+            <table>
+                <tr>
+                    <th>测试序号</th>
+                    <th>测量时间</th>
+                    <th>测量结果</th>
+                    <th>轴承编号</th>
+                </tr>
+            </table>
+        </div>
+
+    </body>
+    <script>
+    //刷新按钮
+    function refreshPage() {
+            location.reload();
+        }
+    function getAll(){
+        fetch('http://10.151.12.139:8080/all-data')
+            .then(response => response.json())
+            .then(data => {
+                let table = document.querySelector('#data table');
+                data.forEach((item, index) => {
+
+                    let row = document.createElement('tr');
+                    let cellIndex = document.createElement('td');
+                    let cellTime = document.createElement('td');
+                    let cellResult = document.createElement('td');
+                    let cellNum = document.createElement('td');
+
+                    cellIndex.innerText = index;
+                    cellTime.innerText = item.time;
+                    cellResult.innerText = item.result;
+                    cellNum.innerText = item.num;
+
+                    row.appendChild(cellIndex);
+                    row.appendChild(cellTime);
+                    row.appendChild(cellResult);
+                    row.appendChild(cellNum);
+
+                    table.appendChild(row);
+                });
+            })
+            .catch(error => console.error('Error:', error));
+    }
+</script>
+</html>
